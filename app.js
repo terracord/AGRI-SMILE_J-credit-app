@@ -7,7 +7,7 @@ const phases = [
   {
     id: 'phase1',
     label: 'プロジェクト登録（プロジェクト申込）',
-    steps: [{ id: 'field', label: '圃場登録', title: '圃場を登録' }],
+    steps: [{ id: 'field', label: '基本情報入力', title: '基本情報を入力' }],
   },
   {
     id: 'phase2',
@@ -38,9 +38,11 @@ const phases = [
 ];
 
 const initialState = {
-  fieldName: '', fieldArea: '', fertilizerType: '', fertilizerAmount: '',
-  bsDate: '', bsAmount: '', harvestDate: '', harvestAmount: '',
-  machineDate: '', machineTask: '', receiptName: '',
+  farmName: '', representativeName: '', location: '', fieldNumber: '',
+  locationDataName: '', targetFieldAreaHa: '', cropType: '', cultivationMethod: '',
+  similarProgramRegistered: false,
+  fertilizerType: '', fertilizerAmount: '', bsDate: '', bsAmount: '',
+  harvestDate: '', harvestAmount: '', machineDate: '', machineTask: '', receiptName: '',
 };
 
 function FormSection({ children }) {
@@ -58,14 +60,29 @@ function App() {
   const currentStep = currentPhase.steps[stepIndex];
 
   const updateField = (key) => (event) => {
-    const value = key === 'receiptName' ? event.target.files?.[0]?.name || '' : event.target.value;
+    let value = event.target.value;
+    if (key === 'receiptName' || key === 'locationDataName') {
+      value = event.target.files?.[0]?.name || '';
+    }
+    if (key === 'similarProgramRegistered') {
+      value = event.target.checked;
+    }
     setForm((prev) => ({ ...prev, [key]: value }));
     setNotice('');
   };
 
   const isPhaseComplete = (index) => {
     if (index === 0) {
-      return Boolean(form.fieldName && form.fieldArea);
+      return Boolean(
+        form.farmName
+        && form.representativeName
+        && form.location
+        && form.fieldNumber
+        && form.locationDataName
+        && form.targetFieldAreaHa
+        && form.cropType
+        && form.cultivationMethod,
+      );
     }
     if (index === 1) {
       return Boolean(form.fertilizerType && form.fertilizerAmount && form.bsDate && form.bsAmount);
@@ -80,8 +97,15 @@ function App() {
   };
 
   const yearSummary = useMemo(() => [
-    ['登録した圃場', form.fieldName || '未入力'],
-    ['圃場の広さ', form.fieldArea ? `${form.fieldArea} a` : '未入力'],
+    ['農業経営体名', form.farmName || '未入力'],
+    ['代表者名', form.representativeName || '未入力'],
+    ['所在地', form.location || '未入力'],
+    ['圃場番号・地番', form.fieldNumber || '未入力'],
+    ['圃場位置図・GISデータ', form.locationDataName || '未アップロード'],
+    ['対象の圃場面積', form.targetFieldAreaHa ? `${form.targetFieldAreaHa} ha` : '未入力'],
+    ['作物種類', form.cropType || '未入力'],
+    ['栽培方法', form.cultivationMethod || '未入力'],
+    ['類似制度への登録', form.similarProgramRegistered ? '登録あり' : '登録なし'],
     ['肥料の量', form.fertilizerAmount ? `${form.fertilizerAmount} kg` : '未入力'],
     ['バイオ炭の量', form.bsAmount ? `${form.bsAmount} kg` : '未入力'],
     ['収穫量', form.harvestAmount ? `${form.harvestAmount} kg` : '未入力'],
@@ -91,8 +115,20 @@ function App() {
 
   const contentByPage = {
     field: e(FormSection, {}, [
-      e('label', { key: 'f1' }, ['圃場名', e('input', { type: 'text', value: form.fieldName, onChange: updateField('fieldName'), placeholder: '例：西の田んぼ' })]),
-      e('label', { key: 'f2' }, ['広さ（a）', e('input', { type: 'number', min: '0', value: form.fieldArea, onChange: updateField('fieldArea'), placeholder: '例：30' })]),
+      e('p', { key: 'basic', className: 'section-title' }, '＜基本情報＞'),
+      e('label', { key: 'f1' }, ['農業経営体名', e('input', { type: 'text', value: form.farmName, onChange: updateField('farmName'), placeholder: '例：○○農園' })]),
+      e('label', { key: 'f2' }, ['代表者名', e('input', { type: 'text', value: form.representativeName, onChange: updateField('representativeName'), placeholder: '例：山田 太郎' })]),
+      e('label', { key: 'f3' }, ['所在地', e('input', { type: 'text', value: form.location, onChange: updateField('location'), placeholder: '例：新潟県○○市' })]),
+      e('label', { key: 'f4' }, ['圃場番号・地番', e('input', { type: 'text', value: form.fieldNumber, onChange: updateField('fieldNumber'), placeholder: '例：A-12 / 123-4' })]),
+      e('label', { key: 'f5' }, ['圃場位置図・GISデータ', e('input', { type: 'file', onChange: updateField('locationDataName') })]),
+      e('p', { key: 'f6', className: 'hint' }, `保存されたファイル名：${form.locationDataName || 'まだありません'}`),
+      e('label', { key: 'f7' }, ['対象の圃場面積（ha）', e('input', { type: 'number', min: '0', step: '0.01', value: form.targetFieldAreaHa, onChange: updateField('targetFieldAreaHa'), placeholder: '例：1.25' })]),
+      e('label', { key: 'f8' }, ['作物種類（品目）', e('input', { type: 'text', value: form.cropType, onChange: updateField('cropType'), placeholder: '例：水稲' })]),
+      e('label', { key: 'f9' }, ['栽培方法（露地／施設等）', e('input', { type: 'text', value: form.cultivationMethod, onChange: updateField('cultivationMethod'), placeholder: '例：露地' })]),
+      e('label', { key: 'f10', className: 'check-label' }, [
+        e('input', { type: 'checkbox', checked: form.similarProgramRegistered, onChange: updateField('similarProgramRegistered') }),
+        '類似制度へプロジェクトに登録している',
+      ]),
     ]),
     fertilizer: e(FormSection, {}, [
       e('label', { key: 'n1' }, ['肥料の種類', e('input', { type: 'text', value: form.fertilizerType, onChange: updateField('fertilizerType'), placeholder: '例：有機肥料' })]),

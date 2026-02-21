@@ -190,3 +190,31 @@ textarea {
   width: 18px;
   height: 18px;
 }
+
+
+.repeat-block {
+  border: 1px solid #d9e7d6;
+  border-radius: 10px;
+  padding: 10px;
+  background: #f9fcf7;
+}
+
+.sub-title {
+  margin: 0;
+  font-weight: 700;
+  color: #3d5a3d;
+}
+
+.add-btn {
+  border: 1px dashed #5f8a5f;
+  border-radius: 8px;
+  background: #f3fbf1;
+  color: #2f5a2f;
+  padding: 10px;
+  font-weight: 700;
+}
+
+.inline-grid {
+  display: grid;
+  gap: 10px;
+}

@@ -37,31 +37,48 @@ const phases = [
   },
 ];
 
+const createFertilizerRow = () => ({
+  name: '',
+  annualAmount: '',
+  nitrogenRate: '',
+  purchaseRecordName: '',
+});
+
+const createBsMaterialRow = () => ({
+  materialName: '',
+  certificateName: '',
+  usageDateTime: '',
+  usageMethod: '',
+  usageAmount: '',
+  usageCount: '',
+  dilutionRate: '',
+});
+
 const initialState = {
   farmName: '', representativeName: '', location: '', fieldNumber: '',
   locationDataName: '', targetFieldAreaHa: '', cropType: '', cultivationMethod: '',
   similarProgramRegistered: false,
-  fertilizerName: '', annualFertilizerPerHa: '', fertilizerNitrogenRate: '', fertilizerPurchaseRecordName: '',
-  bsMaterialName: '', bsGuidelineCertificateName: '', bsUsageDetails: '',
-  fieldTestPeriod: '', fieldTestDesignName: '', fertilizerWorkCount: '', machineType: '', annualFuelUsage: '',
+
+  fertilizers: [createFertilizerRow()],
+  fieldTestStart: '', fieldTestEnd: '',
+  fieldTestDesignNames: ['', '', '', ''],
+  fertilizerWorkCount: '', machineType: '', annualFuelUsage: '',
+
+  bsMaterials: [createBsMaterialRow()],
+
   conventionalFertilizerPerHa: '', reducedFertilizerPerHa: '', fertilizerReductionRate: '', firstYearNitrogenRate: '',
   conventionalYield: '', reducedBsYield: '', firstYearBsDate: '', firstYearBsUsage: '',
   productionRecordName: '', jaConfirmationName: '',
+
   bsFieldAreaHa: '', activityFertilizerDate: '', activityFertilizerName: '', activityFertilizerAmountKg: '',
   activityFertilizerPerArea: '', activityNitrogenRate: '', fieldYearlyYield: '', shippingRecordName: '',
+
   fertilizingFuelUsage: '', bsSprayFuelUsage: '', fertilizerTransportFuelUsage: '', bsTransportFuelUsage: '',
   cropChanged: false, cultivationChanged: false,
   finalCultivationArea: '', finalAnnualFertilizer: '', finalAnnualYield: '',
   n2oFactorLatest: '', gwpLatest: '', fuelFactor: '',
   fuelInvoiceName: '', monitoringBsCertificateName: '', monitoringJaConfirmationName: '', monitoringFieldMapName: '',
-};
-
-const requiredByPhase = {
-  0: ['farmName', 'representativeName', 'location', 'fieldNumber', 'locationDataName', 'targetFieldAreaHa', 'cropType', 'cultivationMethod'],
-  1: ['fertilizerName', 'annualFertilizerPerHa', 'fertilizerNitrogenRate', 'fertilizerPurchaseRecordName', 'bsMaterialName', 'bsGuidelineCertificateName', 'bsUsageDetails', 'fieldTestPeriod', 'fieldTestDesignName', 'fertilizerWorkCount', 'machineType', 'annualFuelUsage'],
-  2: ['conventionalFertilizerPerHa', 'reducedFertilizerPerHa', 'fertilizerReductionRate', 'firstYearNitrogenRate', 'conventionalYield', 'reducedBsYield', 'firstYearBsDate', 'firstYearBsUsage', 'productionRecordName', 'jaConfirmationName'],
-  3: ['bsFieldAreaHa', 'activityFertilizerDate', 'activityFertilizerName', 'activityFertilizerAmountKg', 'activityFertilizerPerArea', 'activityNitrogenRate', 'fieldYearlyYield', 'shippingRecordName'],
-  4: ['fertilizingFuelUsage', 'bsSprayFuelUsage', 'fertilizerTransportFuelUsage', 'bsTransportFuelUsage', 'finalCultivationArea', 'finalAnnualFertilizer', 'finalAnnualYield', 'n2oFactorLatest', 'gwpLatest', 'fuelFactor', 'fuelInvoiceName', 'monitoringBsCertificateName', 'monitoringJaConfirmationName', 'monitoringFieldMapName'],
+  receiptName: '',
 };
 
 function FormSection({ children }) {
@@ -71,8 +88,6 @@ function FormSection({ children }) {
 function App() {
   const [phaseIndex, setPhaseIndex] = useState(0);
   const [stepIndex, setStepIndex] = useState(0);
-  const [maxUnlockedPhase, setMaxUnlockedPhase] = useState(0);
-  const [notice, setNotice] = useState('');
   const [form, setForm] = useState(initialState);
 
   const currentPhase = phases[phaseIndex];
@@ -80,23 +95,57 @@ function App() {
 
   const updateField = (key) => (event) => {
     let value = event.target.value;
-    if (key.endsWith('Name') && event.target.files) value = event.target.files?.[0]?.name || '';
-    if (key === 'similarProgramRegistered' || key === 'cropChanged' || key === 'cultivationChanged') value = event.target.checked;
+    if (event.target.type === 'file') {
+      value = event.target.files?.[0]?.name || '';
+    }
+    if (event.target.type === 'checkbox') {
+      value = event.target.checked;
+    }
     setForm((prev) => ({ ...prev, [key]: value }));
-    setNotice('');
   };
 
-  const isPhaseComplete = (index) => requiredByPhase[index].every((key) => Boolean(form[key]));
+  const updateFertilizer = (index, key) => (event) => {
+    const value = key === 'purchaseRecordName' ? event.target.files?.[0]?.name || '' : event.target.value;
+    setForm((prev) => {
+      const rows = [...prev.fertilizers];
+      rows[index] = { ...rows[index], [key]: value };
+      return { ...prev, fertilizers: rows };
+    });
+  };
+
+  const addFertilizer = () => {
+    setForm((prev) => ({ ...prev, fertilizers: [...prev.fertilizers, createFertilizerRow()] }));
+  };
+
+  const updateBsMaterial = (index, key) => (event) => {
+    const value = key === 'certificateName' ? event.target.files?.[0]?.name || '' : event.target.value;
+    setForm((prev) => {
+      const rows = [...prev.bsMaterials];
+      rows[index] = { ...rows[index], [key]: value };
+      return { ...prev, bsMaterials: rows };
+    });
+  };
+
+  const addBsMaterial = () => {
+    setForm((prev) => ({ ...prev, bsMaterials: [...prev.bsMaterials, createBsMaterialRow()] }));
+  };
+
+  const updateDesignFile = (index) => (event) => {
+    const value = event.target.files?.[0]?.name || '';
+    setForm((prev) => {
+      const names = [...prev.fieldTestDesignNames];
+      names[index] = value;
+      return { ...prev, fieldTestDesignNames: names };
+    });
+  };
 
   const yearSummary = useMemo(() => [
     ['農業経営体名', form.farmName || '未入力'],
-    ['対象の圃場面積', form.targetFieldAreaHa ? `${form.targetFieldAreaHa} ha` : '未入力'],
-    ['使用肥料名', form.fertilizerName || '未入力'],
-    ['慣行施肥量', form.conventionalFertilizerPerHa ? `${form.conventionalFertilizerPerHa} kg/ha` : '未入力'],
+    ['使用肥料の件数', `${form.fertilizers.length}件`],
+    ['BS資材の件数', `${form.bsMaterials.length}件`],
+    ['圃場試験期間', form.fieldTestStart && form.fieldTestEnd ? `${form.fieldTestStart} 〜 ${form.fieldTestEnd}` : '未入力'],
     ['BS使用圃場面積', form.bsFieldAreaHa ? `${form.bsFieldAreaHa} ha` : '未入力'],
-    ['施肥作業燃料使用量', form.fertilizingFuelUsage || '未入力'],
     ['最終年間収穫量', form.finalAnnualYield || '未入力'],
-    ['燃料請求書', form.fuelInvoiceName || '未アップロード'],
   ], [form]);
 
   const contentByPage = {
@@ -113,28 +162,48 @@ function App() {
       e('label', { key: 'f9' }, ['栽培方法（露地／施設等）', e('input', { type: 'text', value: form.cultivationMethod, onChange: updateField('cultivationMethod') })]),
       e('label', { key: 'f10', className: 'check-label' }, [e('input', { type: 'checkbox', checked: form.similarProgramRegistered, onChange: updateField('similarProgramRegistered') }), '類似制度へプロジェクトに登録しているか']),
     ]),
+
     fertilizer: e(FormSection, {}, [
       e('p', { key: 'p2a', className: 'section-title' }, '＜使用条件1（既存施肥）＞'),
-      e('label', { key: 'n1' }, ['使用肥料名', e('input', { type: 'text', value: form.fertilizerName, onChange: updateField('fertilizerName') })]),
-      e('label', { key: 'n2' }, ['年間施肥量（kg/ha）', e('input', { type: 'number', min: '0', value: form.annualFertilizerPerHa, onChange: updateField('annualFertilizerPerHa') })]),
-      e('label', { key: 'n3' }, ['肥料中窒素含有率（%N）', e('input', { type: 'number', min: '0', step: '0.01', value: form.fertilizerNitrogenRate, onChange: updateField('fertilizerNitrogenRate') })]),
-      e('label', { key: 'n4' }, ['肥料購買記録', e('input', { type: 'file', onChange: updateField('fertilizerPurchaseRecordName') })]),
-      e('p', { key: 'n5', className: 'hint' }, `保存されたファイル名：${form.fertilizerPurchaseRecordName || 'まだありません'}`),
+      ...form.fertilizers.map((row, index) => e('div', { key: `fert-${index}`, className: 'repeat-block' }, [
+        e('p', { key: `ttl-${index}`, className: 'sub-title' }, `肥料 ${index + 1}`),
+        e('label', { key: `n1-${index}` }, ['使用肥料名', e('input', { type: 'text', value: row.name, onChange: updateFertilizer(index, 'name') })]),
+        e('label', { key: `n2-${index}` }, ['年間施肥量（kg/ha）', e('input', { type: 'number', min: '0', value: row.annualAmount, onChange: updateFertilizer(index, 'annualAmount') })]),
+        e('label', { key: `n3-${index}` }, ['肥料中窒素含有率（%N）', e('input', { type: 'number', min: '0', step: '0.01', value: row.nitrogenRate, onChange: updateFertilizer(index, 'nitrogenRate') })]),
+        e('label', { key: `n4-${index}` }, ['肥料購買記録', e('input', { type: 'file', onChange: updateFertilizer(index, 'purchaseRecordName') })]),
+        e('p', { key: `n5-${index}`, className: 'hint' }, `保存されたファイル名：${row.purchaseRecordName || 'まだありません'}`),
+      ])),
+      e('button', { key: 'add-fertilizer', type: 'button', className: 'add-btn', onClick: addFertilizer }, '＋ 肥料を追加'),
+
       e('p', { key: 'p2b', className: 'section-title' }, '＜使用条件3（圃場試験）/影響度算定＞'),
-      e('label', { key: 'n6' }, ['圃場試験実施期間', e('input', { type: 'text', value: form.fieldTestPeriod, onChange: updateField('fieldTestPeriod'), placeholder: '例：2026/04〜2026/10' })]),
-      e('label', { key: 'n7' }, ['検証区設計図（4区）', e('input', { type: 'file', onChange: updateField('fieldTestDesignName') })]),
-      e('p', { key: 'n8', className: 'hint' }, `保存されたファイル名：${form.fieldTestDesignName || 'まだありません'}`),
+      e('div', { key: 'test-period', className: 'inline-grid' }, [
+        e('label', { key: 'n6s' }, ['圃場試験開始日時', e('input', { type: 'datetime-local', value: form.fieldTestStart, onChange: updateField('fieldTestStart') })]),
+        e('label', { key: 'n6e' }, ['圃場試験終了日時', e('input', { type: 'datetime-local', value: form.fieldTestEnd, onChange: updateField('fieldTestEnd') })]),
+      ]),
+      e('p', { key: 'design-title', className: 'sub-title' }, '検証区設計図（4区）'),
+      ...[0, 1, 2, 3].map((idx) => e('label', { key: `design-${idx}` }, [`検証区 ${idx + 1}`, e('input', { type: 'file', onChange: updateDesignFile(idx) })])),
+      e('p', { key: 'design-hint', className: 'hint' }, `登録済み：${form.fieldTestDesignNames.filter(Boolean).length}/4`),
       e('label', { key: 'n9' }, ['施肥作業回数', e('input', { type: 'number', min: '0', value: form.fertilizerWorkCount, onChange: updateField('fertilizerWorkCount') })]),
       e('label', { key: 'n10' }, ['使用農機種類', e('input', { type: 'text', value: form.machineType, onChange: updateField('machineType') })]),
       e('label', { key: 'n11' }, ['年間燃料使用量', e('input', { type: 'number', min: '0', value: form.annualFuelUsage, onChange: updateField('annualFuelUsage') })]),
     ]),
+
     bs: e(FormSection, {}, [
       e('p', { key: 'p2c', className: 'section-title' }, '＜使用条件2（BS適格性）＞'),
-      e('label', { key: 'b1' }, ['BS資材名', e('input', { type: 'text', value: form.bsMaterialName, onChange: updateField('bsMaterialName') })]),
-      e('label', { key: 'b2' }, ['ガイドライン準拠証明書', e('input', { type: 'file', onChange: updateField('bsGuidelineCertificateName') })]),
-      e('p', { key: 'b3', className: 'hint' }, `保存されたファイル名：${form.bsGuidelineCertificateName || 'まだありません'}`),
-      e('label', { key: 'b4' }, ['日付、BS使用方法・使用量・回数、希釈倍率', e('textarea', { value: form.bsUsageDetails, onChange: updateField('bsUsageDetails'), rows: 4 })]),
+      ...form.bsMaterials.map((row, index) => e('div', { key: `bsm-${index}`, className: 'repeat-block' }, [
+        e('p', { key: `bst-${index}`, className: 'sub-title' }, `BS資材 ${index + 1}`),
+        e('label', { key: `b1-${index}` }, ['BS資材名', e('input', { type: 'text', value: row.materialName, onChange: updateBsMaterial(index, 'materialName') })]),
+        e('label', { key: `b2-${index}` }, ['ガイドライン準拠証明書', e('input', { type: 'file', onChange: updateBsMaterial(index, 'certificateName') })]),
+        e('p', { key: `b2h-${index}`, className: 'hint' }, `保存されたファイル名：${row.certificateName || 'まだありません'}`),
+        e('label', { key: `b3-${index}` }, ['日付', e('input', { type: 'datetime-local', value: row.usageDateTime, onChange: updateBsMaterial(index, 'usageDateTime') })]),
+        e('label', { key: `b4-${index}` }, ['BS使用方法', e('input', { type: 'text', value: row.usageMethod, onChange: updateBsMaterial(index, 'usageMethod') })]),
+        e('label', { key: `b5-${index}` }, ['使用量', e('input', { type: 'number', min: '0', value: row.usageAmount, onChange: updateBsMaterial(index, 'usageAmount') })]),
+        e('label', { key: `b6-${index}` }, ['回数', e('input', { type: 'number', min: '0', value: row.usageCount, onChange: updateBsMaterial(index, 'usageCount') })]),
+        e('label', { key: `b7-${index}` }, ['希釈倍率', e('input', { type: 'text', value: row.dilutionRate, onChange: updateBsMaterial(index, 'dilutionRate') })]),
+      ])),
+      e('button', { key: 'add-bs', type: 'button', className: 'add-btn', onClick: addBsMaterial }, '＋ BS資材を追加'),
     ]),
+
     harvest: e(FormSection, {}, [
       e('p', { key: 'p3a', className: 'section-title' }, '＜施肥データ＞'),
       e('label', { key: 'h1' }, ['慣行施肥量（kg/ha）', e('input', { type: 'number', min: '0', value: form.conventionalFertilizerPerHa, onChange: updateField('conventionalFertilizerPerHa') })]),
@@ -148,10 +217,9 @@ function App() {
       e('label', { key: 'h7' }, ['BS使用日', e('input', { type: 'date', value: form.firstYearBsDate, onChange: updateField('firstYearBsDate') })]),
       e('label', { key: 'h8' }, ['使用量・濃度・回数', e('input', { type: 'text', value: form.firstYearBsUsage, onChange: updateField('firstYearBsUsage') })]),
       e('label', { key: 'h9' }, ['生産管理記録', e('input', { type: 'file', onChange: updateField('productionRecordName') })]),
-      e('p', { key: 'h10', className: 'hint' }, `保存されたファイル名：${form.productionRecordName || 'まだありません'}`),
       e('label', { key: 'h11' }, ['JA等の確認書', e('input', { type: 'file', onChange: updateField('jaConfirmationName') })]),
-      e('p', { key: 'h12', className: 'hint' }, `保存されたファイル名：${form.jaConfirmationName || 'まだありません'}`),
     ]),
+
     machine: e(FormSection, {}, [
       e('p', { key: 'p4a', className: 'section-title' }, '＜栽培面積/施肥データ/成分データ＞'),
       e('label', { key: 'm1' }, ['BS使用圃場面積（ha）', e('input', { type: 'number', min: '0', step: '0.01', value: form.bsFieldAreaHa, onChange: updateField('bsFieldAreaHa') })]),
@@ -163,13 +231,14 @@ function App() {
       e('p', { key: 'p4b', className: 'section-title' }, '＜収穫量データ＞'),
       e('label', { key: 'm7' }, ['圃場別年間収穫量', e('input', { type: 'number', min: '0', value: form.fieldYearlyYield, onChange: updateField('fieldYearlyYield') })]),
       e('label', { key: 'm8' }, ['出荷記録', e('input', { type: 'file', onChange: updateField('shippingRecordName') })]),
-      e('p', { key: 'm9', className: 'hint' }, `保存されたファイル名：${form.shippingRecordName || 'まだありません'}`),
     ]),
+
     receipt: e(FormSection, {}, [
       e('p', { key: 'r0', className: 'section-title' }, '補足証憑（任意）'),
       e('label', { key: 'r1' }, ['追加ファイル', e('input', { type: 'file', onChange: updateField('receiptName') })]),
       e('p', { key: 'r2', className: 'hint' }, `保存されたファイル名：${form.receiptName || 'まだありません'}`),
     ]),
+
     yearly: e(FormSection, {}, [
       e('p', { key: 'p5a', className: 'section-title' }, '＜農機燃料/運搬燃料＞'),
       e('label', { key: 'y1' }, ['施肥作業燃料使用量', e('input', { type: 'number', min: '0', value: form.fertilizingFuelUsage, onChange: updateField('fertilizingFuelUsage') })]),
@@ -191,12 +260,9 @@ function App() {
       e('label', { key: 'y14' }, ['BSガイドライン証明書', e('input', { type: 'file', onChange: updateField('monitoringBsCertificateName') })]),
       e('label', { key: 'y15' }, ['JA確認書', e('input', { type: 'file', onChange: updateField('monitoringJaConfirmationName') })]),
       e('label', { key: 'y16' }, ['圃場位置図', e('input', { type: 'file', onChange: updateField('monitoringFieldMapName') })]),
-      e('p', { key: 'y17', className: 'hint' }, `燃料請求書：${form.fuelInvoiceName || '未アップロード'} / BS証明書：${form.monitoringBsCertificateName || '未アップロード'}`),
-      e('p', { key: 'y18', className: 'hint' }, `JA確認書：${form.monitoringJaConfirmationName || '未アップロード'} / 圃場位置図：${form.monitoringFieldMapName || '未アップロード'}`),
-      e('section', { key: 'y19', className: 'summary-list', 'aria-live': 'polite' }, [
-        ...yearSummary.map(([label, value]) => e('article', { key: label, className: 'summary-item' }, [e('p', { key: 1 }, label), e('strong', { key: 2 }, value)])),
-        e('p', { key: 'note', className: 'hint' }, '※算定ロジックはモックのため実装していません。'),
-      ]),
+      e('section', { key: 'y19', className: 'summary-list', 'aria-live': 'polite' },
+        yearSummary.map(([label, value]) => e('article', { key: label, className: 'summary-item' }, [e('p', { key: 1 }, label), e('strong', { key: 2 }, value)]))),
+      e('p', { key: 'note', className: 'hint' }, '※算定ロジックはモックのため実装していません。'),
     ]),
   };
 
@@ -211,28 +277,23 @@ function App() {
 
   const goNext = () => {
     if (stepIndex < currentPhase.steps.length - 1) return setStepIndex(stepIndex + 1);
-    if (!isPhaseComplete(phaseIndex)) return setNotice('このフェーズの入力が未完了です。必須項目を入力してください。');
     if (phaseIndex < phases.length - 1) {
-      const nextPhaseIndex = phaseIndex + 1;
-      setMaxUnlockedPhase(Math.max(maxUnlockedPhase, nextPhaseIndex));
-      setPhaseIndex(nextPhaseIndex);
+      setPhaseIndex(phaseIndex + 1);
       setStepIndex(0);
-      setNotice('');
     }
   };
 
   return e('div', { className: 'app-shell' }, [
     e('header', { key: 'header', className: 'app-header' }, [
       e('h1', { key: 1 }, '農作業の記録アプリ（モック）'),
-      e('p', { key: 2 }, '5つのフェーズで順番に入力します。前のフェーズ完了で次に進めます。'),
+      e('p', { key: 2 }, 'デバッグしやすいよう、フェーズ間は自由に移動できます。'),
     ]),
     e('nav', { key: 'phase-nav', className: 'phase-nav', 'aria-label': 'フェーズ一覧' },
       phases.map((phase, index) => e('button', {
         key: phase.id,
         type: 'button',
-        disabled: index > maxUnlockedPhase,
         className: `phase-chip ${index === phaseIndex ? 'is-active' : ''}`,
-        onClick: () => { setPhaseIndex(index); setStepIndex(0); setNotice(''); },
+        onClick: () => { setPhaseIndex(index); setStepIndex(0); },
       }, `${index + 1}. ${phase.label}`))),
     e('div', { key: 'phase-info', className: 'phase-info' }, [
       e('strong', { key: 'phase-title' }, currentPhase.label),
@@ -241,10 +302,9 @@ function App() {
     e('main', { key: 'main', className: 'card' }, [
       e('h2', { key: 'h2' }, currentStep.title),
       e('div', { key: 'content' }, contentByPage[currentStep.id]),
-      notice ? e('p', { key: 'notice', className: 'notice' }, notice) : null,
       e('footer', { key: 'f', className: 'footer-actions' }, [
         e('button', { key: 'p', type: 'button', disabled: phaseIndex === 0 && stepIndex === 0, onClick: goPrev }, '前へ'),
-        e('button', { key: 'n', type: 'button', disabled: phaseIndex === phases.length - 1, onClick: goNext }, stepIndex === currentPhase.steps.length - 1 ? '次のフェーズへ' : '次へ'),
+        e('button', { key: 'n', type: 'button', disabled: phaseIndex === phases.length - 1 && stepIndex === currentPhase.steps.length - 1, onClick: goNext }, stepIndex === currentPhase.steps.length - 1 ? '次のフェーズへ' : '次へ'),
       ]),
     ]),
   ]);

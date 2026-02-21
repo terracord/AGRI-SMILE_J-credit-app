@@ -1,0 +1,143 @@
+:root {
+  font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+  color: #1f2a1f;
+  background: #eef6ea;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.app-shell {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.app-header p {
+  margin-top: 8px;
+  color: #496249;
+  font-size: 0.95rem;
+}
+
+.step-nav {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 12px 0;
+}
+
+.step-chip {
+  border: 1px solid #86aa7f;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #fff;
+  white-space: nowrap;
+  color: #355135;
+}
+
+.step-chip.is-active {
+  background: #3f7a3f;
+  color: #fff;
+  border-color: #3f7a3f;
+}
+
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 4px 14px rgba(58, 89, 56, 0.12);
+}
+
+.card h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+
+.form-section {
+  display: grid;
+  gap: 12px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
+input {
+  border: 1px solid #b7cab2;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 1rem;
+}
+
+.footer-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.footer-actions button {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  background: #3f7a3f;
+  color: #fff;
+}
+
+.footer-actions button[disabled] {
+  background: #95ab95;
+}
+
+.summary-list {
+  display: grid;
+  gap: 10px;
+}
+
+.summary-item {
+  padding: 10px;
+  border-radius: 8px;
+  background: #f4f8f2;
+  border: 1px solid #dde8d9;
+}
+
+.summary-item p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #4c654c;
+}
+
+.summary-item strong {
+  font-size: 1.1rem;
+}
+
+.hint {
+  color: #4c654c;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 480px) {
+  .app-shell {
+    padding: 12px;
+  }
+
+  .app-header h1 {
+    font-size: 1.2rem;
+  }
+
+  .card {
+    padding: 14px;
+  }
+}

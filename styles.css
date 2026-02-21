@@ -30,14 +30,14 @@ body {
   font-size: 0.95rem;
 }
 
-.step-nav {
+.phase-nav {
   display: flex;
   gap: 8px;
   overflow-x: auto;
   padding: 12px 0;
 }
 
-.step-chip {
+.phase-chip {
   border: 1px solid #86aa7f;
   border-radius: 999px;
   padding: 8px 12px;
@@ -46,7 +46,7 @@ body {
   color: #355135;
 }
 
-.step-chip.is-active {
+.phase-chip.is-active {
   background: #3f7a3f;
   color: #fff;
   border-color: #3f7a3f;
@@ -140,4 +140,33 @@ input {
   .card {
     padding: 14px;
   }
+}
+
+
+.phase-chip[disabled] {
+  opacity: 0.5;
+}
+
+.phase-info {
+  margin-bottom: 10px;
+}
+
+.phase-info strong {
+  display: block;
+  color: #2f4f2f;
+}
+
+.phase-info p {
+  margin: 4px 0 0;
+  color: #496249;
+}
+
+.notice {
+  margin-top: 12px;
+  color: #9a3d00;
+  background: #fff3ea;
+  border: 1px solid #ffd6bf;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.9rem;
 }

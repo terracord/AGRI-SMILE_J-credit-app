@@ -3,14 +3,38 @@ import { createRoot } from 'https://esm.sh/react-dom@18.3.1/client';
 
 const e = React.createElement;
 
-const pages = [
-  { id: 'field', label: '圃場登録', title: '圃場を登録' },
-  { id: 'fertilizer', label: '施肥入力', title: '肥料の記録' },
-  { id: 'bs', label: 'BS使用入力', title: 'バイオ炭の記録' },
-  { id: 'harvest', label: '収穫量入力', title: '収穫の記録' },
-  { id: 'machine', label: '農機作業入力', title: '機械作業の記録' },
-  { id: 'receipt', label: '証憑アップロード', title: '証明書類を保存' },
-  { id: 'yearly', label: '年間まとめ表示', title: '年間のまとめ' },
+const phases = [
+  {
+    id: 'phase1',
+    label: 'プロジェクト登録（プロジェクト申込）',
+    steps: [{ id: 'field', label: '圃場登録', title: '圃場を登録' }],
+  },
+  {
+    id: 'phase2',
+    label: 'プロジェクト登録（BS減肥効果実測）',
+    steps: [
+      { id: 'fertilizer', label: '施肥入力', title: '肥料の記録' },
+      { id: 'bs', label: 'BS使用入力', title: 'バイオ炭の記録' },
+    ],
+  },
+  {
+    id: 'phase3',
+    label: 'BS減肥効果実測（初年度）',
+    steps: [{ id: 'harvest', label: '収穫量入力', title: '収穫の記録' }],
+  },
+  {
+    id: 'phase4',
+    label: 'プロジェクト活動中',
+    steps: [
+      { id: 'machine', label: '農機作業入力', title: '機械作業の記録' },
+      { id: 'receipt', label: '証憑アップロード', title: '証明書類を保存' },
+    ],
+  },
+  {
+    id: 'phase5',
+    label: 'モニタリング・認証',
+    steps: [{ id: 'yearly', label: '年間まとめ表示', title: '年間のまとめ' }],
+  },
 ];
 
 const initialState = {
@@ -24,13 +48,35 @@ function FormSection({ children }) {
 }
 
 function App() {
-  const [activePage, setActivePage] = useState('field');
+  const [phaseIndex, setPhaseIndex] = useState(0);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [maxUnlockedPhase, setMaxUnlockedPhase] = useState(0);
+  const [notice, setNotice] = useState('');
   const [form, setForm] = useState(initialState);
-  const activeIndex = pages.findIndex((p) => p.id === activePage);
+
+  const currentPhase = phases[phaseIndex];
+  const currentStep = currentPhase.steps[stepIndex];
 
   const updateField = (key) => (event) => {
     const value = key === 'receiptName' ? event.target.files?.[0]?.name || '' : event.target.value;
     setForm((prev) => ({ ...prev, [key]: value }));
+    setNotice('');
+  };
+
+  const isPhaseComplete = (index) => {
+    if (index === 0) {
+      return Boolean(form.fieldName && form.fieldArea);
+    }
+    if (index === 1) {
+      return Boolean(form.fertilizerType && form.fertilizerAmount && form.bsDate && form.bsAmount);
+    }
+    if (index === 2) {
+      return Boolean(form.harvestDate && form.harvestAmount);
+    }
+    if (index === 3) {
+      return Boolean(form.machineDate && form.machineTask && form.receiptName);
+    }
+    return true;
   };
 
   const yearSummary = useMemo(() => [
@@ -74,24 +120,66 @@ function App() {
     ]),
   };
 
+  const goPrev = () => {
+    if (stepIndex > 0) {
+      setStepIndex(stepIndex - 1);
+      return;
+    }
+    if (phaseIndex > 0) {
+      const prevPhaseIndex = phaseIndex - 1;
+      setPhaseIndex(prevPhaseIndex);
+      setStepIndex(phases[prevPhaseIndex].steps.length - 1);
+    }
+  };
+
+  const goNext = () => {
+    if (stepIndex < currentPhase.steps.length - 1) {
+      setStepIndex(stepIndex + 1);
+      return;
+    }
+
+    if (!isPhaseComplete(phaseIndex)) {
+      setNotice('このフェーズの入力が未完了です。必須項目を入力してください。');
+      return;
+    }
+
+    if (phaseIndex < phases.length - 1) {
+      const nextPhaseIndex = phaseIndex + 1;
+      setMaxUnlockedPhase(Math.max(maxUnlockedPhase, nextPhaseIndex));
+      setPhaseIndex(nextPhaseIndex);
+      setStepIndex(0);
+      setNotice('');
+    }
+  };
+
   return e('div', { className: 'app-shell' }, [
     e('header', { key: 'header', className: 'app-header' }, [
       e('h1', { key: 1 }, '農作業の記録アプリ（モック）'),
-      e('p', { key: 2 }, '1画面ずつ入力できます。難しい言葉は使っていません。'),
+      e('p', { key: 2 }, '5つのフェーズで順番に入力します。前のフェーズ完了で次に進めます。'),
     ]),
-    e('nav', { key: 'nav', className: 'step-nav', 'aria-label': '入力ステップ' },
-      pages.map((page, i) => e('button', {
-        key: page.id,
+    e('nav', { key: 'phase-nav', className: 'phase-nav', 'aria-label': 'フェーズ一覧' },
+      phases.map((phase, index) => e('button', {
+        key: phase.id,
         type: 'button',
-        className: `step-chip ${page.id === activePage ? 'is-active' : ''}`,
-        onClick: () => setActivePage(page.id),
-      }, `${i + 1}. ${page.label}`))),
+        disabled: index > maxUnlockedPhase,
+        className: `phase-chip ${index === phaseIndex ? 'is-active' : ''}`,
+        onClick: () => {
+          setPhaseIndex(index);
+          setStepIndex(0);
+          setNotice('');
+        },
+      }, `${index + 1}. ${phase.label}`))),
+    e('div', { key: 'phase-info', className: 'phase-info' }, [
+      e('strong', { key: 'phase-title' }, currentPhase.label),
+      e('p', { key: 'step-title' }, `入力項目：${currentStep.label}`),
+    ]),
     e('main', { key: 'main', className: 'card' }, [
-      e('h2', { key: 'h2' }, pages[activeIndex].title),
-      e('div', { key: 'content' }, contentByPage[activePage]),
+      e('h2', { key: 'h2' }, currentStep.title),
+      e('div', { key: 'content' }, contentByPage[currentStep.id]),
+      notice ? e('p', { key: 'notice', className: 'notice' }, notice) : null,
       e('footer', { key: 'f', className: 'footer-actions' }, [
-        e('button', { key: 'p', type: 'button', disabled: activeIndex === 0, onClick: () => setActivePage(pages[Math.max(activeIndex - 1, 0)].id) }, '前へ'),
-        e('button', { key: 'n', type: 'button', disabled: activeIndex === pages.length - 1, onClick: () => setActivePage(pages[Math.min(activeIndex + 1, pages.length - 1)].id) }, '次へ'),
+        e('button', { key: 'p', type: 'button', disabled: phaseIndex === 0 && stepIndex === 0, onClick: goPrev }, '前へ'),
+        e('button', { key: 'n', type: 'button', disabled: phaseIndex === phases.length - 1, onClick: goNext }, stepIndex === currentPhase.steps.length - 1 ? '次のフェーズへ' : '次へ'),
       ]),
     ]),
   ]);

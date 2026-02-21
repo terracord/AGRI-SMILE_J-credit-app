@@ -37,21 +37,10 @@ const phases = [
   },
 ];
 
-const createFertilizerRow = () => ({
-  name: '',
-  annualAmount: '',
-  nitrogenRate: '',
-  purchaseRecordName: '',
-});
+const createFertilizerRow = () => ({ name: '', annualAmount: '', nitrogenRate: '', purchaseRecordName: '' });
 
 const createBsMaterialRow = () => ({
-  materialName: '',
-  certificateName: '',
-  usageDateTime: '',
-  usageMethod: '',
-  usageAmount: '',
-  usageCount: '',
-  dilutionRate: '',
+  materialName: '', certificateName: '', usageDateTime: '', usageMethod: '', usageAmount: '', usageCount: '', dilutionRate: '',
 });
 
 const initialState = {
@@ -62,7 +51,17 @@ const initialState = {
   fertilizers: [createFertilizerRow()],
   fieldTestStart: '', fieldTestEnd: '',
   fieldTestDesignNames: ['', '', '', ''],
-  fertilizerWorkCount: '', machineType: '', annualFuelUsage: '',
+
+  transportMethod: '',
+  transportFuelMode: 'input',
+  transportFuelAmount: '',
+  ownTransportDistance: '',
+  vendorTransportDistance: '',
+  usesMachineForFertilizing: '',
+  machineFuelMode: 'input',
+  annualMachineFuelUsage: '',
+  machineWorkCountLastSeason: '',
+  machineTypeOption: '',
 
   bsMaterials: [createBsMaterialRow()],
 
@@ -95,12 +94,8 @@ function App() {
 
   const updateField = (key) => (event) => {
     let value = event.target.value;
-    if (event.target.type === 'file') {
-      value = event.target.files?.[0]?.name || '';
-    }
-    if (event.target.type === 'checkbox') {
-      value = event.target.checked;
-    }
+    if (event.target.type === 'file') value = event.target.files?.[0]?.name || '';
+    if (event.target.type === 'checkbox') value = event.target.checked;
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -113,9 +108,7 @@ function App() {
     });
   };
 
-  const addFertilizer = () => {
-    setForm((prev) => ({ ...prev, fertilizers: [...prev.fertilizers, createFertilizerRow()] }));
-  };
+  const addFertilizer = () => setForm((prev) => ({ ...prev, fertilizers: [...prev.fertilizers, createFertilizerRow()] }));
 
   const updateBsMaterial = (index, key) => (event) => {
     const value = key === 'certificateName' ? event.target.files?.[0]?.name || '' : event.target.value;
@@ -126,9 +119,7 @@ function App() {
     });
   };
 
-  const addBsMaterial = () => {
-    setForm((prev) => ({ ...prev, bsMaterials: [...prev.bsMaterials, createBsMaterialRow()] }));
-  };
+  const addBsMaterial = () => setForm((prev) => ({ ...prev, bsMaterials: [...prev.bsMaterials, createBsMaterialRow()] }));
 
   const updateDesignFile = (index) => (event) => {
     const value = event.target.files?.[0]?.name || '';
@@ -164,7 +155,7 @@ function App() {
     ]),
 
     fertilizer: e(FormSection, {}, [
-      e('p', { key: 'p2a', className: 'section-title' }, '＜使用条件1（既存施肥）＞'),
+      e('p', { key: 'p2a', className: 'section-title' }, '・使用条件1（既存施肥）：現在使用している肥料を登録してください。（使用条件１）'),
       ...form.fertilizers.map((row, index) => e('div', { key: `fert-${index}`, className: 'repeat-block' }, [
         e('p', { key: `ttl-${index}`, className: 'sub-title' }, `肥料 ${index + 1}`),
         e('label', { key: `n1-${index}` }, ['使用肥料名', e('input', { type: 'text', value: row.name, onChange: updateFertilizer(index, 'name') })]),
@@ -175,7 +166,7 @@ function App() {
       ])),
       e('button', { key: 'add-fertilizer', type: 'button', className: 'add-btn', onClick: addFertilizer }, '＋ 肥料を追加'),
 
-      e('p', { key: 'p2b', className: 'section-title' }, '＜使用条件3（圃場試験）/影響度算定＞'),
+      e('p', { key: 'p2b', className: 'section-title' }, '・使用条件3（圃場試験）/ 影響度算定；バイオスティミュラント資材による減肥効果を実測する試験区の情報を登録してください（使用条件３）'),
       e('div', { key: 'test-period', className: 'inline-grid' }, [
         e('label', { key: 'n6s' }, ['圃場試験開始日時', e('input', { type: 'datetime-local', value: form.fieldTestStart, onChange: updateField('fieldTestStart') })]),
         e('label', { key: 'n6e' }, ['圃場試験終了日時', e('input', { type: 'datetime-local', value: form.fieldTestEnd, onChange: updateField('fieldTestEnd') })]),
@@ -183,13 +174,57 @@ function App() {
       e('p', { key: 'design-title', className: 'sub-title' }, '検証区設計図（4区）'),
       ...[0, 1, 2, 3].map((idx) => e('label', { key: `design-${idx}` }, [`検証区 ${idx + 1}`, e('input', { type: 'file', onChange: updateDesignFile(idx) })])),
       e('p', { key: 'design-hint', className: 'hint' }, `登録済み：${form.fieldTestDesignNames.filter(Boolean).length}/4`),
-      e('label', { key: 'n9' }, ['施肥作業回数', e('input', { type: 'number', min: '0', value: form.fertilizerWorkCount, onChange: updateField('fertilizerWorkCount') })]),
-      e('label', { key: 'n10' }, ['使用農機種類', e('input', { type: 'text', value: form.machineType, onChange: updateField('machineType') })]),
-      e('label', { key: 'n11' }, ['年間燃料使用量', e('input', { type: 'number', min: '0', value: form.annualFuelUsage, onChange: updateField('annualFuelUsage') })]),
+
+      e('p', { key: 'p2d', className: 'section-title' }, '肥料の運搬や施肥時の農機の使用状況を登録してください'),
+      e('label', { key: 't1' }, ['肥料を購入して農地まで運搬するときの輸送方法を教えてください。', e('select', { value: form.transportMethod, onChange: updateField('transportMethod') }, [
+        e('option', { key: 'tm0', value: '' }, '選択してください'),
+        e('option', { key: 'tm1', value: 'own-truck' }, 'トラックで輸送（自身または自社）'),
+        e('option', { key: 'tm2', value: 'vendor-truck' }, 'トラックで輸送（輸送業者または製造業者）'),
+        e('option', { key: 'tm3', value: 'other' }, 'その他'),
+      ])]),
+      form.transportMethod === 'own-truck' ? e('div', { key: 'own-truck-block', className: 'repeat-block' }, [
+        e('label', { key: 'ot1' }, ['輸送時のガソリンの使用量', e('select', { value: form.transportFuelMode, onChange: updateField('transportFuelMode') }, [
+          e('option', { key: 'tfm1', value: 'input' }, '数値入力'),
+          e('option', { key: 'tfm2', value: 'unknown' }, 'わからない'),
+        ])]),
+        form.transportFuelMode === 'input' ? e('label', { key: 'ot2' }, ['ガソリン使用量', e('input', { type: 'number', min: '0', value: form.transportFuelAmount, onChange: updateField('transportFuelAmount') })]) : null,
+        form.transportFuelMode === 'unknown' ? e('label', { key: 'ot3' }, ['購入場所から農地までの距離', e('select', { value: form.ownTransportDistance, onChange: updateField('ownTransportDistance') }, [
+          e('option', { key: 'od0', value: '' }, '選択してください'),
+          e('option', { key: 'od1', value: '50km以内' }, '50km以内'),
+          e('option', { key: 'od2', value: '50～100km' }, '50～100km'),
+          e('option', { key: 'od3', value: '100～200km' }, '100～200km'),
+          e('option', { key: 'od4', value: '200km以上' }, '200km以上'),
+        ])]) : null,
+      ]) : null,
+      form.transportMethod === 'vendor-truck' ? e('label', { key: 'vt1' }, ['購入場所から農地までの距離', e('select', { value: form.vendorTransportDistance, onChange: updateField('vendorTransportDistance') }, [
+        e('option', { key: 'vd0', value: '' }, '選択してください'),
+        e('option', { key: 'vd1', value: '50km以内' }, '50km以内'),
+        e('option', { key: 'vd2', value: '50～100km' }, '50～100km'),
+        e('option', { key: 'vd3', value: '100～200km' }, '100～200km'),
+        e('option', { key: 'vd4', value: '200km以上' }, '200km以上'),
+      ])]) : null,
+      e('label', { key: 'mch1' }, ['施肥時に農機を使用していますか？', e('select', { value: form.usesMachineForFertilizing, onChange: updateField('usesMachineForFertilizing') }, [
+        e('option', { key: 'um0', value: '' }, '選択してください'),
+        e('option', { key: 'um1', value: 'yes' }, 'はい'),
+        e('option', { key: 'um2', value: 'no' }, 'いいえ'),
+      ])]),
+      form.usesMachineForFertilizing === 'yes' ? e('div', { key: 'machine-yes', className: 'repeat-block' }, [
+        e('label', { key: 'my1' }, ['施肥で使用する農機の年間燃料使用量', e('select', { value: form.machineFuelMode, onChange: updateField('machineFuelMode') }, [
+          e('option', { key: 'mfm1', value: 'input' }, '数値入力'),
+          e('option', { key: 'mfm2', value: 'unknown' }, 'わからない'),
+        ])]),
+        form.machineFuelMode === 'input' ? e('label', { key: 'my2' }, ['年間燃料使用量', e('input', { type: 'number', min: '0', value: form.annualMachineFuelUsage, onChange: updateField('annualMachineFuelUsage') })]) : null,
+        form.machineFuelMode === 'unknown' ? e('label', { key: 'my3' }, ['1昨季における施肥作業の回数', e('input', { type: 'number', min: '0', value: form.machineWorkCountLastSeason, onChange: updateField('machineWorkCountLastSeason') })]) : null,
+        form.machineFuelMode === 'unknown' ? e('label', { key: 'my4' }, ['使用する農機の種類', e('select', { value: form.machineTypeOption, onChange: updateField('machineTypeOption') }, [
+          e('option', { key: 'mt0', value: '' }, '選択してください'),
+          e('option', { key: 'mt1', value: '選択肢１' }, '選択肢１'),
+          e('option', { key: 'mt2', value: '選択肢２' }, '選択肢２'),
+        ])]) : null,
+      ]) : null,
     ]),
 
     bs: e(FormSection, {}, [
-      e('p', { key: 'p2c', className: 'section-title' }, '＜使用条件2（BS適格性）＞'),
+      e('p', { key: 'p2c', className: 'section-title' }, '・使用条件2（BS適格性）：本プロジェクトで使用予定のバイオスティミュラント資材を登録してください（使用条件２）'),
       ...form.bsMaterials.map((row, index) => e('div', { key: `bsm-${index}`, className: 'repeat-block' }, [
         e('p', { key: `bst-${index}`, className: 'sub-title' }, `BS資材 ${index + 1}`),
         e('label', { key: `b1-${index}` }, ['BS資材名', e('input', { type: 'text', value: row.materialName, onChange: updateBsMaterial(index, 'materialName') })]),

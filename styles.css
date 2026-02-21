@@ -75,7 +75,8 @@ label {
   font-weight: 700;
 }
 
-input {
+input,
+textarea {
   border: 1px solid #b7cab2;
   border-radius: 8px;
   padding: 10px;
@@ -173,7 +174,7 @@ input {
 
 
 .section-title {
-  margin: 0;
+  margin: 8px 0 0;
   font-weight: 700;
   color: #2f4f2f;
 }

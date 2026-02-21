@@ -13,27 +13,27 @@ const phases = [
     id: 'phase2',
     label: 'プロジェクト登録（BS減肥効果実測）',
     steps: [
-      { id: 'fertilizer', label: '施肥入力', title: '肥料の記録' },
-      { id: 'bs', label: 'BS使用入力', title: 'バイオ炭の記録' },
+      { id: 'fertilizer', label: '使用条件入力', title: '使用条件と影響度を入力' },
+      { id: 'bs', label: 'BS情報入力', title: 'BS関連情報を入力' },
     ],
   },
   {
     id: 'phase3',
     label: 'BS減肥効果実測（初年度）',
-    steps: [{ id: 'harvest', label: '収穫量入力', title: '収穫の記録' }],
+    steps: [{ id: 'harvest', label: '初年度データ入力', title: '初年度データを入力' }],
   },
   {
     id: 'phase4',
     label: 'プロジェクト活動中',
     steps: [
-      { id: 'machine', label: '農機作業入力', title: '機械作業の記録' },
-      { id: 'receipt', label: '証憑アップロード', title: '証明書類を保存' },
+      { id: 'machine', label: '活動データ入力', title: '活動データを入力' },
+      { id: 'receipt', label: '証憑入力', title: '証憑を入力' },
     ],
   },
   {
     id: 'phase5',
     label: 'モニタリング・認証',
-    steps: [{ id: 'yearly', label: '年間まとめ表示', title: '年間のまとめ' }],
+    steps: [{ id: 'yearly', label: '認証データ入力', title: '認証データを入力' }],
   },
 ];
 
@@ -41,8 +41,27 @@ const initialState = {
   farmName: '', representativeName: '', location: '', fieldNumber: '',
   locationDataName: '', targetFieldAreaHa: '', cropType: '', cultivationMethod: '',
   similarProgramRegistered: false,
-  fertilizerType: '', fertilizerAmount: '', bsDate: '', bsAmount: '',
-  harvestDate: '', harvestAmount: '', machineDate: '', machineTask: '', receiptName: '',
+  fertilizerName: '', annualFertilizerPerHa: '', fertilizerNitrogenRate: '', fertilizerPurchaseRecordName: '',
+  bsMaterialName: '', bsGuidelineCertificateName: '', bsUsageDetails: '',
+  fieldTestPeriod: '', fieldTestDesignName: '', fertilizerWorkCount: '', machineType: '', annualFuelUsage: '',
+  conventionalFertilizerPerHa: '', reducedFertilizerPerHa: '', fertilizerReductionRate: '', firstYearNitrogenRate: '',
+  conventionalYield: '', reducedBsYield: '', firstYearBsDate: '', firstYearBsUsage: '',
+  productionRecordName: '', jaConfirmationName: '',
+  bsFieldAreaHa: '', activityFertilizerDate: '', activityFertilizerName: '', activityFertilizerAmountKg: '',
+  activityFertilizerPerArea: '', activityNitrogenRate: '', fieldYearlyYield: '', shippingRecordName: '',
+  fertilizingFuelUsage: '', bsSprayFuelUsage: '', fertilizerTransportFuelUsage: '', bsTransportFuelUsage: '',
+  cropChanged: false, cultivationChanged: false,
+  finalCultivationArea: '', finalAnnualFertilizer: '', finalAnnualYield: '',
+  n2oFactorLatest: '', gwpLatest: '', fuelFactor: '',
+  fuelInvoiceName: '', monitoringBsCertificateName: '', monitoringJaConfirmationName: '', monitoringFieldMapName: '',
+};
+
+const requiredByPhase = {
+  0: ['farmName', 'representativeName', 'location', 'fieldNumber', 'locationDataName', 'targetFieldAreaHa', 'cropType', 'cultivationMethod'],
+  1: ['fertilizerName', 'annualFertilizerPerHa', 'fertilizerNitrogenRate', 'fertilizerPurchaseRecordName', 'bsMaterialName', 'bsGuidelineCertificateName', 'bsUsageDetails', 'fieldTestPeriod', 'fieldTestDesignName', 'fertilizerWorkCount', 'machineType', 'annualFuelUsage'],
+  2: ['conventionalFertilizerPerHa', 'reducedFertilizerPerHa', 'fertilizerReductionRate', 'firstYearNitrogenRate', 'conventionalYield', 'reducedBsYield', 'firstYearBsDate', 'firstYearBsUsage', 'productionRecordName', 'jaConfirmationName'],
+  3: ['bsFieldAreaHa', 'activityFertilizerDate', 'activityFertilizerName', 'activityFertilizerAmountKg', 'activityFertilizerPerArea', 'activityNitrogenRate', 'fieldYearlyYield', 'shippingRecordName'],
+  4: ['fertilizingFuelUsage', 'bsSprayFuelUsage', 'fertilizerTransportFuelUsage', 'bsTransportFuelUsage', 'finalCultivationArea', 'finalAnnualFertilizer', 'finalAnnualYield', 'n2oFactorLatest', 'gwpLatest', 'fuelFactor', 'fuelInvoiceName', 'monitoringBsCertificateName', 'monitoringJaConfirmationName', 'monitoringFieldMapName'],
 };
 
 function FormSection({ children }) {
@@ -61,106 +80,128 @@ function App() {
 
   const updateField = (key) => (event) => {
     let value = event.target.value;
-    if (key === 'receiptName' || key === 'locationDataName') {
-      value = event.target.files?.[0]?.name || '';
-    }
-    if (key === 'similarProgramRegistered') {
-      value = event.target.checked;
-    }
+    if (key.endsWith('Name') && event.target.files) value = event.target.files?.[0]?.name || '';
+    if (key === 'similarProgramRegistered' || key === 'cropChanged' || key === 'cultivationChanged') value = event.target.checked;
     setForm((prev) => ({ ...prev, [key]: value }));
     setNotice('');
   };
 
-  const isPhaseComplete = (index) => {
-    if (index === 0) {
-      return Boolean(
-        form.farmName
-        && form.representativeName
-        && form.location
-        && form.fieldNumber
-        && form.locationDataName
-        && form.targetFieldAreaHa
-        && form.cropType
-        && form.cultivationMethod,
-      );
-    }
-    if (index === 1) {
-      return Boolean(form.fertilizerType && form.fertilizerAmount && form.bsDate && form.bsAmount);
-    }
-    if (index === 2) {
-      return Boolean(form.harvestDate && form.harvestAmount);
-    }
-    if (index === 3) {
-      return Boolean(form.machineDate && form.machineTask && form.receiptName);
-    }
-    return true;
-  };
+  const isPhaseComplete = (index) => requiredByPhase[index].every((key) => Boolean(form[key]));
 
   const yearSummary = useMemo(() => [
     ['農業経営体名', form.farmName || '未入力'],
-    ['代表者名', form.representativeName || '未入力'],
-    ['所在地', form.location || '未入力'],
-    ['圃場番号・地番', form.fieldNumber || '未入力'],
-    ['圃場位置図・GISデータ', form.locationDataName || '未アップロード'],
     ['対象の圃場面積', form.targetFieldAreaHa ? `${form.targetFieldAreaHa} ha` : '未入力'],
-    ['作物種類', form.cropType || '未入力'],
-    ['栽培方法', form.cultivationMethod || '未入力'],
-    ['類似制度への登録', form.similarProgramRegistered ? '登録あり' : '登録なし'],
-    ['肥料の量', form.fertilizerAmount ? `${form.fertilizerAmount} kg` : '未入力'],
-    ['バイオ炭の量', form.bsAmount ? `${form.bsAmount} kg` : '未入力'],
-    ['収穫量', form.harvestAmount ? `${form.harvestAmount} kg` : '未入力'],
-    ['機械作業', form.machineTask || '未入力'],
-    ['証明書類', form.receiptName || '未アップロード'],
+    ['使用肥料名', form.fertilizerName || '未入力'],
+    ['慣行施肥量', form.conventionalFertilizerPerHa ? `${form.conventionalFertilizerPerHa} kg/ha` : '未入力'],
+    ['BS使用圃場面積', form.bsFieldAreaHa ? `${form.bsFieldAreaHa} ha` : '未入力'],
+    ['施肥作業燃料使用量', form.fertilizingFuelUsage || '未入力'],
+    ['最終年間収穫量', form.finalAnnualYield || '未入力'],
+    ['燃料請求書', form.fuelInvoiceName || '未アップロード'],
   ], [form]);
 
   const contentByPage = {
     field: e(FormSection, {}, [
-      e('p', { key: 'basic', className: 'section-title' }, '＜基本情報＞'),
-      e('label', { key: 'f1' }, ['農業経営体名', e('input', { type: 'text', value: form.farmName, onChange: updateField('farmName'), placeholder: '例：○○農園' })]),
-      e('label', { key: 'f2' }, ['代表者名', e('input', { type: 'text', value: form.representativeName, onChange: updateField('representativeName'), placeholder: '例：山田 太郎' })]),
-      e('label', { key: 'f3' }, ['所在地', e('input', { type: 'text', value: form.location, onChange: updateField('location'), placeholder: '例：新潟県○○市' })]),
-      e('label', { key: 'f4' }, ['圃場番号・地番', e('input', { type: 'text', value: form.fieldNumber, onChange: updateField('fieldNumber'), placeholder: '例：A-12 / 123-4' })]),
+      e('p', { key: 's1', className: 'section-title' }, '＜基本情報＞'),
+      e('label', { key: 'f1' }, ['農業経営体名', e('input', { type: 'text', value: form.farmName, onChange: updateField('farmName') })]),
+      e('label', { key: 'f2' }, ['代表者名', e('input', { type: 'text', value: form.representativeName, onChange: updateField('representativeName') })]),
+      e('label', { key: 'f3' }, ['所在地', e('input', { type: 'text', value: form.location, onChange: updateField('location') })]),
+      e('label', { key: 'f4' }, ['圃場番号・地番', e('input', { type: 'text', value: form.fieldNumber, onChange: updateField('fieldNumber') })]),
       e('label', { key: 'f5' }, ['圃場位置図・GISデータ', e('input', { type: 'file', onChange: updateField('locationDataName') })]),
       e('p', { key: 'f6', className: 'hint' }, `保存されたファイル名：${form.locationDataName || 'まだありません'}`),
-      e('label', { key: 'f7' }, ['対象の圃場面積（ha）', e('input', { type: 'number', min: '0', step: '0.01', value: form.targetFieldAreaHa, onChange: updateField('targetFieldAreaHa'), placeholder: '例：1.25' })]),
-      e('label', { key: 'f8' }, ['作物種類（品目）', e('input', { type: 'text', value: form.cropType, onChange: updateField('cropType'), placeholder: '例：水稲' })]),
-      e('label', { key: 'f9' }, ['栽培方法（露地／施設等）', e('input', { type: 'text', value: form.cultivationMethod, onChange: updateField('cultivationMethod'), placeholder: '例：露地' })]),
-      e('label', { key: 'f10', className: 'check-label' }, [
-        e('input', { type: 'checkbox', checked: form.similarProgramRegistered, onChange: updateField('similarProgramRegistered') }),
-        '類似制度へプロジェクトに登録している',
-      ]),
+      e('label', { key: 'f7' }, ['対象の圃場面積（ha）', e('input', { type: 'number', min: '0', step: '0.01', value: form.targetFieldAreaHa, onChange: updateField('targetFieldAreaHa') })]),
+      e('label', { key: 'f8' }, ['作物種類（品目）', e('input', { type: 'text', value: form.cropType, onChange: updateField('cropType') })]),
+      e('label', { key: 'f9' }, ['栽培方法（露地／施設等）', e('input', { type: 'text', value: form.cultivationMethod, onChange: updateField('cultivationMethod') })]),
+      e('label', { key: 'f10', className: 'check-label' }, [e('input', { type: 'checkbox', checked: form.similarProgramRegistered, onChange: updateField('similarProgramRegistered') }), '類似制度へプロジェクトに登録しているか']),
     ]),
     fertilizer: e(FormSection, {}, [
-      e('label', { key: 'n1' }, ['肥料の種類', e('input', { type: 'text', value: form.fertilizerType, onChange: updateField('fertilizerType'), placeholder: '例：有機肥料' })]),
-      e('label', { key: 'n2' }, ['使った量（kg）', e('input', { type: 'number', min: '0', value: form.fertilizerAmount, onChange: updateField('fertilizerAmount'), placeholder: '例：120' })]),
+      e('p', { key: 'p2a', className: 'section-title' }, '＜使用条件1（既存施肥）＞'),
+      e('label', { key: 'n1' }, ['使用肥料名', e('input', { type: 'text', value: form.fertilizerName, onChange: updateField('fertilizerName') })]),
+      e('label', { key: 'n2' }, ['年間施肥量（kg/ha）', e('input', { type: 'number', min: '0', value: form.annualFertilizerPerHa, onChange: updateField('annualFertilizerPerHa') })]),
+      e('label', { key: 'n3' }, ['肥料中窒素含有率（%N）', e('input', { type: 'number', min: '0', step: '0.01', value: form.fertilizerNitrogenRate, onChange: updateField('fertilizerNitrogenRate') })]),
+      e('label', { key: 'n4' }, ['肥料購買記録', e('input', { type: 'file', onChange: updateField('fertilizerPurchaseRecordName') })]),
+      e('p', { key: 'n5', className: 'hint' }, `保存されたファイル名：${form.fertilizerPurchaseRecordName || 'まだありません'}`),
+      e('p', { key: 'p2b', className: 'section-title' }, '＜使用条件3（圃場試験）/影響度算定＞'),
+      e('label', { key: 'n6' }, ['圃場試験実施期間', e('input', { type: 'text', value: form.fieldTestPeriod, onChange: updateField('fieldTestPeriod'), placeholder: '例：2026/04〜2026/10' })]),
+      e('label', { key: 'n7' }, ['検証区設計図（4区）', e('input', { type: 'file', onChange: updateField('fieldTestDesignName') })]),
+      e('p', { key: 'n8', className: 'hint' }, `保存されたファイル名：${form.fieldTestDesignName || 'まだありません'}`),
+      e('label', { key: 'n9' }, ['施肥作業回数', e('input', { type: 'number', min: '0', value: form.fertilizerWorkCount, onChange: updateField('fertilizerWorkCount') })]),
+      e('label', { key: 'n10' }, ['使用農機種類', e('input', { type: 'text', value: form.machineType, onChange: updateField('machineType') })]),
+      e('label', { key: 'n11' }, ['年間燃料使用量', e('input', { type: 'number', min: '0', value: form.annualFuelUsage, onChange: updateField('annualFuelUsage') })]),
     ]),
     bs: e(FormSection, {}, [
-      e('label', { key: 'b1' }, ['使った日', e('input', { type: 'date', value: form.bsDate, onChange: updateField('bsDate') })]),
-      e('label', { key: 'b2' }, ['使った量（kg）', e('input', { type: 'number', min: '0', value: form.bsAmount, onChange: updateField('bsAmount'), placeholder: '例：40' })]),
+      e('p', { key: 'p2c', className: 'section-title' }, '＜使用条件2（BS適格性）＞'),
+      e('label', { key: 'b1' }, ['BS資材名', e('input', { type: 'text', value: form.bsMaterialName, onChange: updateField('bsMaterialName') })]),
+      e('label', { key: 'b2' }, ['ガイドライン準拠証明書', e('input', { type: 'file', onChange: updateField('bsGuidelineCertificateName') })]),
+      e('p', { key: 'b3', className: 'hint' }, `保存されたファイル名：${form.bsGuidelineCertificateName || 'まだありません'}`),
+      e('label', { key: 'b4' }, ['日付、BS使用方法・使用量・回数、希釈倍率', e('textarea', { value: form.bsUsageDetails, onChange: updateField('bsUsageDetails'), rows: 4 })]),
     ]),
     harvest: e(FormSection, {}, [
-      e('label', { key: 'h1' }, ['収穫日', e('input', { type: 'date', value: form.harvestDate, onChange: updateField('harvestDate') })]),
-      e('label', { key: 'h2' }, ['収穫量（kg）', e('input', { type: 'number', min: '0', value: form.harvestAmount, onChange: updateField('harvestAmount'), placeholder: '例：520' })]),
+      e('p', { key: 'p3a', className: 'section-title' }, '＜施肥データ＞'),
+      e('label', { key: 'h1' }, ['慣行施肥量（kg/ha）', e('input', { type: 'number', min: '0', value: form.conventionalFertilizerPerHa, onChange: updateField('conventionalFertilizerPerHa') })]),
+      e('label', { key: 'h2' }, ['減肥施肥量（kg/ha）', e('input', { type: 'number', min: '0', value: form.reducedFertilizerPerHa, onChange: updateField('reducedFertilizerPerHa') })]),
+      e('label', { key: 'h3' }, ['減肥率（%）', e('input', { type: 'number', min: '0', step: '0.01', value: form.fertilizerReductionRate, onChange: updateField('fertilizerReductionRate') })]),
+      e('label', { key: 'h4' }, ['肥料中窒素含有率', e('input', { type: 'number', min: '0', step: '0.01', value: form.firstYearNitrogenRate, onChange: updateField('firstYearNitrogenRate') })]),
+      e('p', { key: 'p3b', className: 'section-title' }, '＜収穫量データ＞'),
+      e('label', { key: 'h5' }, ['慣行区収穫量', e('input', { type: 'number', min: '0', value: form.conventionalYield, onChange: updateField('conventionalYield') })]),
+      e('label', { key: 'h6' }, ['減肥＋BS区収穫量', e('input', { type: 'number', min: '0', value: form.reducedBsYield, onChange: updateField('reducedBsYield') })]),
+      e('p', { key: 'p3c', className: 'section-title' }, '＜BS管理＞'),
+      e('label', { key: 'h7' }, ['BS使用日', e('input', { type: 'date', value: form.firstYearBsDate, onChange: updateField('firstYearBsDate') })]),
+      e('label', { key: 'h8' }, ['使用量・濃度・回数', e('input', { type: 'text', value: form.firstYearBsUsage, onChange: updateField('firstYearBsUsage') })]),
+      e('label', { key: 'h9' }, ['生産管理記録', e('input', { type: 'file', onChange: updateField('productionRecordName') })]),
+      e('p', { key: 'h10', className: 'hint' }, `保存されたファイル名：${form.productionRecordName || 'まだありません'}`),
+      e('label', { key: 'h11' }, ['JA等の確認書', e('input', { type: 'file', onChange: updateField('jaConfirmationName') })]),
+      e('p', { key: 'h12', className: 'hint' }, `保存されたファイル名：${form.jaConfirmationName || 'まだありません'}`),
     ]),
     machine: e(FormSection, {}, [
-      e('label', { key: 'm1' }, ['作業日', e('input', { type: 'date', value: form.machineDate, onChange: updateField('machineDate') })]),
-      e('label', { key: 'm2' }, ['作業内容', e('input', { type: 'text', value: form.machineTask, onChange: updateField('machineTask'), placeholder: '例：田起こし' })]),
+      e('p', { key: 'p4a', className: 'section-title' }, '＜栽培面積/施肥データ/成分データ＞'),
+      e('label', { key: 'm1' }, ['BS使用圃場面積（ha）', e('input', { type: 'number', min: '0', step: '0.01', value: form.bsFieldAreaHa, onChange: updateField('bsFieldAreaHa') })]),
+      e('label', { key: 'm2' }, ['施肥日', e('input', { type: 'date', value: form.activityFertilizerDate, onChange: updateField('activityFertilizerDate') })]),
+      e('label', { key: 'm3' }, ['肥料名', e('input', { type: 'text', value: form.activityFertilizerName, onChange: updateField('activityFertilizerName') })]),
+      e('label', { key: 'm4' }, ['使用量（kg）', e('input', { type: 'number', min: '0', value: form.activityFertilizerAmountKg, onChange: updateField('activityFertilizerAmountKg') })]),
+      e('label', { key: 'm5' }, ['単位面積当たり施肥量', e('input', { type: 'number', min: '0', value: form.activityFertilizerPerArea, onChange: updateField('activityFertilizerPerArea') })]),
+      e('label', { key: 'm6' }, ['肥料中窒素含有率', e('input', { type: 'number', min: '0', step: '0.01', value: form.activityNitrogenRate, onChange: updateField('activityNitrogenRate') })]),
+      e('p', { key: 'p4b', className: 'section-title' }, '＜収穫量データ＞'),
+      e('label', { key: 'm7' }, ['圃場別年間収穫量', e('input', { type: 'number', min: '0', value: form.fieldYearlyYield, onChange: updateField('fieldYearlyYield') })]),
+      e('label', { key: 'm8' }, ['出荷記録', e('input', { type: 'file', onChange: updateField('shippingRecordName') })]),
+      e('p', { key: 'm9', className: 'hint' }, `保存されたファイル名：${form.shippingRecordName || 'まだありません'}`),
     ]),
     receipt: e(FormSection, {}, [
-      e('label', { key: 'r1' }, ['ファイルを選ぶ', e('input', { type: 'file', onChange: updateField('receiptName') })]),
+      e('p', { key: 'r0', className: 'section-title' }, '補足証憑（任意）'),
+      e('label', { key: 'r1' }, ['追加ファイル', e('input', { type: 'file', onChange: updateField('receiptName') })]),
       e('p', { key: 'r2', className: 'hint' }, `保存されたファイル名：${form.receiptName || 'まだありません'}`),
     ]),
-    yearly: e('section', { className: 'summary-list', 'aria-live': 'polite' }, [
-      ...yearSummary.map(([label, value]) => e('article', { key: label, className: 'summary-item' }, [e('p', { key: 1 }, label), e('strong', { key: 2 }, value)])),
-      e('p', { key: 'note', className: 'hint' }, '※算定ロジックはモックのため実装していません。'),
+    yearly: e(FormSection, {}, [
+      e('p', { key: 'p5a', className: 'section-title' }, '＜農機燃料/運搬燃料＞'),
+      e('label', { key: 'y1' }, ['施肥作業燃料使用量', e('input', { type: 'number', min: '0', value: form.fertilizingFuelUsage, onChange: updateField('fertilizingFuelUsage') })]),
+      e('label', { key: 'y2' }, ['BS散布燃料使用量', e('input', { type: 'number', min: '0', value: form.bsSprayFuelUsage, onChange: updateField('bsSprayFuelUsage') })]),
+      e('label', { key: 'y3' }, ['肥料運搬燃料使用量', e('input', { type: 'number', min: '0', value: form.fertilizerTransportFuelUsage, onChange: updateField('fertilizerTransportFuelUsage') })]),
+      e('label', { key: 'y4' }, ['BS運搬燃料使用量', e('input', { type: 'number', min: '0', value: form.bsTransportFuelUsage, onChange: updateField('bsTransportFuelUsage') })]),
+      e('p', { key: 'p5b', className: 'section-title' }, '＜使用条件4確認/活動量整理＞'),
+      e('label', { key: 'y5', className: 'check-label' }, [e('input', { type: 'checkbox', checked: form.cropChanged, onChange: updateField('cropChanged') }), '作物変更有無']),
+      e('label', { key: 'y6', className: 'check-label' }, [e('input', { type: 'checkbox', checked: form.cultivationChanged, onChange: updateField('cultivationChanged') }), '栽培方法変更有無']),
+      e('label', { key: 'y7' }, ['栽培面積（最終確定値）', e('input', { type: 'number', min: '0', value: form.finalCultivationArea, onChange: updateField('finalCultivationArea') })]),
+      e('label', { key: 'y8' }, ['年間施肥量（確定値）', e('input', { type: 'number', min: '0', value: form.finalAnnualFertilizer, onChange: updateField('finalAnnualFertilizer') })]),
+      e('label', { key: 'y9' }, ['年間収穫量（確定値）', e('input', { type: 'number', min: '0', value: form.finalAnnualYield, onChange: updateField('finalAnnualYield') })]),
+      e('p', { key: 'p5c', className: 'section-title' }, '＜係数＞'),
+      e('label', { key: 'y10' }, ['N₂O排出係数（最新値）', e('input', { type: 'number', min: '0', step: '0.0001', value: form.n2oFactorLatest, onChange: updateField('n2oFactorLatest') })]),
+      e('label', { key: 'y11' }, ['GWP（最新値）', e('input', { type: 'number', min: '0', step: '0.01', value: form.gwpLatest, onChange: updateField('gwpLatest') })]),
+      e('label', { key: 'y12' }, ['燃料排出係数', e('input', { type: 'number', min: '0', step: '0.0001', value: form.fuelFactor, onChange: updateField('fuelFactor') })]),
+      e('p', { key: 'p5d', className: 'section-title' }, '＜証憑書類＞'),
+      e('label', { key: 'y13' }, ['燃料請求書', e('input', { type: 'file', onChange: updateField('fuelInvoiceName') })]),
+      e('label', { key: 'y14' }, ['BSガイドライン証明書', e('input', { type: 'file', onChange: updateField('monitoringBsCertificateName') })]),
+      e('label', { key: 'y15' }, ['JA確認書', e('input', { type: 'file', onChange: updateField('monitoringJaConfirmationName') })]),
+      e('label', { key: 'y16' }, ['圃場位置図', e('input', { type: 'file', onChange: updateField('monitoringFieldMapName') })]),
+      e('p', { key: 'y17', className: 'hint' }, `燃料請求書：${form.fuelInvoiceName || '未アップロード'} / BS証明書：${form.monitoringBsCertificateName || '未アップロード'}`),
+      e('p', { key: 'y18', className: 'hint' }, `JA確認書：${form.monitoringJaConfirmationName || '未アップロード'} / 圃場位置図：${form.monitoringFieldMapName || '未アップロード'}`),
+      e('section', { key: 'y19', className: 'summary-list', 'aria-live': 'polite' }, [
+        ...yearSummary.map(([label, value]) => e('article', { key: label, className: 'summary-item' }, [e('p', { key: 1 }, label), e('strong', { key: 2 }, value)])),
+        e('p', { key: 'note', className: 'hint' }, '※算定ロジックはモックのため実装していません。'),
+      ]),
     ]),
   };
 
   const goPrev = () => {
-    if (stepIndex > 0) {
-      setStepIndex(stepIndex - 1);
-      return;
-    }
+    if (stepIndex > 0) return setStepIndex(stepIndex - 1);
     if (phaseIndex > 0) {
       const prevPhaseIndex = phaseIndex - 1;
       setPhaseIndex(prevPhaseIndex);
@@ -169,16 +210,8 @@ function App() {
   };
 
   const goNext = () => {
-    if (stepIndex < currentPhase.steps.length - 1) {
-      setStepIndex(stepIndex + 1);
-      return;
-    }
-
-    if (!isPhaseComplete(phaseIndex)) {
-      setNotice('このフェーズの入力が未完了です。必須項目を入力してください。');
-      return;
-    }
-
+    if (stepIndex < currentPhase.steps.length - 1) return setStepIndex(stepIndex + 1);
+    if (!isPhaseComplete(phaseIndex)) return setNotice('このフェーズの入力が未完了です。必須項目を入力してください。');
     if (phaseIndex < phases.length - 1) {
       const nextPhaseIndex = phaseIndex + 1;
       setMaxUnlockedPhase(Math.max(maxUnlockedPhase, nextPhaseIndex));
@@ -199,11 +232,7 @@ function App() {
         type: 'button',
         disabled: index > maxUnlockedPhase,
         className: `phase-chip ${index === phaseIndex ? 'is-active' : ''}`,
-        onClick: () => {
-          setPhaseIndex(index);
-          setStepIndex(0);
-          setNotice('');
-        },
+        onClick: () => { setPhaseIndex(index); setStepIndex(0); setNotice(''); },
       }, `${index + 1}. ${phase.label}`))),
     e('div', { key: 'phase-info', className: 'phase-info' }, [
       e('strong', { key: 'phase-title' }, currentPhase.label),
